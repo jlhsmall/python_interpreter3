@@ -42,7 +42,7 @@ namespace LEAF {
         for (int i = 0; i < lb; ++i)b[i] = s2[lb-1 - i] - '0';
         for (int i = lb; i < la; ++i)b[i] = 0;
         for (int i = 0; i < la; ++i)if ((a[i] -= b[i]) < 0)a[i] += 10, --a[i + 1];
-        while (la && !a[la - 1])--la;
+        while (la>1 && !a[la - 1])--la;
         std::string ret = "";
         for (int i = la - 1; i >= 0; --i)ret += (char) (a[i] + '0');
         delete[]a;
@@ -114,6 +114,8 @@ namespace LEAF {
                     break;
                 case 'T':
                     bval = 1;
+                    type = BOOL;
+                    break;
                 case 'F':
                     bval = 0;
                     type = BOOL;
@@ -637,51 +639,41 @@ class EvalVisitor: public Python3BaseVisitor {
         v2=visit(ctx->testlist(ctx->testlist().size()-1)).as<std::vector<LEAF::variable> >();
         if(ctx->testlist().size()==1)return v2;
         for(int j=0;j<v2.size();++j)if(v2[j].gettype()==LEAF::VAR)v2[j]=varkey.top()[v2[j].getval()];
-        for(int i=(int)ctx->testlist().size()-2;i>0;--i){
-            v1=visit(ctx->testlist(i)).as<std::vector<LEAF::variable> >();
-            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]=v2[j];
-        }
-        if(ctx->augassign()==nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]=v2[j];
+        if(ctx->augassign()==nullptr) {
+            for (int i = (int) ctx->testlist().size() - 2; i >= 0; --i) {
+                v1 = visit(ctx->testlist(i)).as<std::vector<LEAF::variable> >();
+                for (int j = 0; j < v2.size(); ++j)varkey.top()[v1[j].getval()] = v2[j];
             }
         }
         else if(ctx->augassign()->ADD_ASSIGN()!= nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]+=v2[j];
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]+=v2[j];
         }
         else if(ctx->augassign()->SUB_ASSIGN()!=nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]-=v2[j];
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]-=v2[j];
         }
         else if(ctx->augassign()->MULT_ASSIGN()!= nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]*=v2[j];
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]*=v2[j];
         }
         else if(ctx->augassign()->DIV_ASSIGN()!= nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]/=v2[j];
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]/=v2[j];
         }
         else if(ctx->augassign()->IDIV_ASSIGN()!= nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]=LEAF::Div(varkey.top()[v1[j].getval()],v2[j]);
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]=LEAF::Div(varkey.top()[v1[j].getval()],v2[j]);
         }
         else if(ctx->augassign()->MOD_ASSIGN()!= nullptr){
-            for(int j=0;j<v2.size();++j){
-                v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
-                varkey.top()[v1[j].getval()]%=v2[j];
-            }
+            v1=visit(ctx->testlist(0)).as<std::vector<LEAF::variable> >();
+            for(int j=0;j<v2.size();++j)varkey.top()[v1[j].getval()]%=v2[j];
+        }
+
+
+        for (auto ii = varkey.top().begin(); ii !=varkey.top().end(); ++ii) {
+            if (ii->second.gettype() == LEAF::VAR)ii->second = varkey.top()[ii->second.getval()];
+            std::cout<<ii->first<<" "<<ii->second.getval()<<std::endl;
         }
         v1.clear();
         return v1;
@@ -728,16 +720,19 @@ class EvalVisitor: public Python3BaseVisitor {
         if(ctx->funcdef()!= nullptr)return visit(ctx->funcdef());
     }
     virtual antlrcpp::Any visitIf_stmt(Python3Parser::If_stmtContext *ctx) override {
-        std::vector<LEAF::variable>v;int i;
-        for(i=0;i<ctx->test().size();++i){
-            v=visit(ctx->test(i)).as<std::vector<LEAF::variable> >();
-            if(v[0].gettype()==LEAF::VAR)v[0]=varkey.top()[v[0].getval()];
-            v[0].tobool();if(v[0].getval()=="True"){
-                v=visit(ctx->suite(i)).as<std::vector<LEAF::variable> >();break;
+        std::vector<LEAF::variable> v;
+        int i;
+        for (i = 0; i < ctx->test().size(); ++i) {
+            v = visit(ctx->test(i)).as<std::vector<LEAF::variable> >();
+            if (v[0].gettype() == LEAF::VAR)v[0] = varkey.top()[v[0].getval()];
+            v[0].tobool();
+            if (v[0].getval() == "True") {
+                v = visit(ctx->suite(i)).as<std::vector<LEAF::variable> >();
+                break;
             }
         }
-        if(i==ctx->test().size()&&ctx->ELSE()!= nullptr)
-            v=visit(ctx->suite((int)ctx->suite().size()-1)).as<std::vector<LEAF::variable> >();
+        if (i == ctx->test().size() && ctx->ELSE() != nullptr)
+            v = visit(ctx->suite((int) ctx->suite().size() - 1)).as<std::vector<LEAF::variable> >();
         return v;
     }
 
@@ -787,7 +782,7 @@ class EvalVisitor: public Python3BaseVisitor {
 
     virtual antlrcpp::Any visitAnd_test(Python3Parser::And_testContext *ctx) override {
         if(ctx->not_test().size()==1)
-                return visit(ctx->not_test(0));
+            return visit(ctx->not_test(0));
         std::vector<LEAF::variable>v;
         for(int i=0;i<ctx->not_test().size();++i){
             v=visit(ctx->not_test(i)).as<std::vector<LEAF::variable> >();
@@ -806,7 +801,12 @@ class EvalVisitor: public Python3BaseVisitor {
     }
 
     virtual antlrcpp::Any visitComparison(Python3Parser::ComparisonContext *ctx) override {
-        if(ctx->comp_op().empty())
+        std::map<std::string, LEAF::variable>::iterator ii;
+        /*      for (ii = varkey.top().begin(); ii !=varkey.top().end(); ++ii) {
+                  if (ii->second.gettype() == LEAF::VAR)ii->second = varkey.top()[ii->second.getval()];
+                  std::cout<<ii->first<<" "<<ii->second.getval()<<std::endl;
+              }
+          */    if(ctx->comp_op().empty())
             return visit(ctx->arith_expr(0));
         std::vector<LEAF::variable>v=visit(ctx->arith_expr(0)).as<std::vector<LEAF::variable> >();
         if(v[0].gettype()==LEAF::VAR)v[0]=varkey.top()[v[0].getval()];
@@ -928,10 +928,17 @@ class EvalVisitor: public Python3BaseVisitor {
         std::vector<LEAF::variable> v;
         std::string _name = ctx->atom()->NAME()->toString();
         if (_name == "print") {
-            for (int i = 0; i < ctx->trailer()->arglist()->argument().size(); ++i) {
-                v=visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
-                if(v[0].gettype()==LEAF::VAR)v[0]=varkey.top()[v[0].getval()];
-                if(i)putchar(' ');v[0].out();
+            std::vector<LEAF::variable> v1;
+            if(ctx->trailer()->arglist()!=nullptr) {
+                for (int i = 0; i < ctx->trailer()->arglist()->argument().size(); ++i) {
+                    v = visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
+                    for (int j = 0; j < v.size(); ++j)v1.push_back(v[j]);
+                }
+                for (int i = 0; i < v1.size(); ++i) {
+                    if (v1[i].gettype() == LEAF::VAR)v1[i] = varkey.top()[v1[i].getval()];
+                    if (i)putchar(' ');
+                    v1[i].out();
+                }
             }
             puts("");
             v.clear();
@@ -986,15 +993,20 @@ class EvalVisitor: public Python3BaseVisitor {
                     mp[s] = v1[0];
                 }
                 std::map<std::string, LEAF::variable>::iterator ii;
+                //         std::cout<<_name<<std::endl;
                 for (ii = mp.begin(); ii != mp.end(); ++ii) {
                     if (ii->second.gettype() == LEAF::VAR)ii->second = varkey.top()[ii->second.getval()];
+                    //                std::cout<<ii->second.getval()<<" ";
                 }
+                //            std::cout<<std::endl;
             }
             varkey.push(mp);
             v = visit(funcctx[_name].first).as<std::vector<LEAF::variable> >();
-            varkey.pop();
             if(!v.empty())v.erase(v.begin());
-        };
+            for(int i=0;i<v.size();++i)
+                if(v[i].gettype()==LEAF::VAR)v[i]=varkey.top()[v[i].getval()];
+            varkey.pop();
+        }
         return v;
     }
 
@@ -1029,6 +1041,8 @@ class EvalVisitor: public Python3BaseVisitor {
         if(ctx->NONE()!=nullptr){
             x.get("None");
         }
+        if(ctx->test()!= nullptr)
+            return visit(ctx->test());
         ret.push_back(x);
         return ret;
     }
@@ -1037,7 +1051,9 @@ class EvalVisitor: public Python3BaseVisitor {
         std::vector<LEAF::variable>v,ret;
         for(int i=0;i<ctx->test().size();++i){
             v=visit(ctx->test(i)).as<std::vector<LEAF::variable> >();
-            if(!v.empty())ret.push_back(v[0]);
+            if(!v.empty()){
+                for(int j=0;j<v.size();++j)ret.push_back(v[j]);
+            }
         }
         return ret;
     }
