@@ -671,10 +671,10 @@ class EvalVisitor: public Python3BaseVisitor {
         }
 
 
-        for (auto ii = varkey.top().begin(); ii !=varkey.top().end(); ++ii) {
-            if (ii->second.gettype() == LEAF::VAR)ii->second = varkey.top()[ii->second.getval()];
-            std::cout<<ii->first<<" "<<ii->second.getval()<<std::endl;
-        }
+        /*  for (auto ii = varkey.top().begin(); ii !=varkey.top().end(); ++ii) {
+              if (ii->second.gettype() == LEAF::VAR)ii->second = varkey.top()[ii->second.getval()];
+              std::cout<<ii->first<<" "<<ii->second.getval()<<std::endl;
+          }*/
         v1.clear();
         return v1;
     }
