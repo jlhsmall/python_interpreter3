@@ -981,16 +981,18 @@ class EvalVisitor: public Python3BaseVisitor {
                     v1 = visit(funcctx[_name].second->test(i)).as<std::vector<LEAF::variable> >();
                     mp[s] = v1[0];
                 }
-                for (i = 0; i < ctx->trailer()->arglist()->argument().size() &&
-                            ctx->trailer()->arglist()->argument(i)->NAME() == nullptr; ++i) {
-                    s = funcctx[_name].second->tfpdef(i)->NAME()->toString();
-                    v1 = visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
-                    mp[s] = v1[0];
-                }
-                for (; i < ctx->trailer()->arglist()->argument().size(); ++i) {
-                    s = ctx->trailer()->arglist()->argument(i)->NAME()->toString();
-                    v1 = visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
-                    mp[s] = v1[0];
+                if(ctx->trailer()->arglist()!= nullptr) {
+                    for (i = 0; i < ctx->trailer()->arglist()->argument().size() &&
+                                ctx->trailer()->arglist()->argument(i)->NAME() == nullptr; ++i) {
+                        s = funcctx[_name].second->tfpdef(i)->NAME()->toString();
+                        v1 = visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
+                        mp[s] = v1[0];
+                    }
+                    for (; i < ctx->trailer()->arglist()->argument().size(); ++i) {
+                        s = ctx->trailer()->arglist()->argument(i)->NAME()->toString();
+                        v1 = visit(ctx->trailer()->arglist()->argument(i)->test()).as<std::vector<LEAF::variable> >();
+                        mp[s] = v1[0];
+                    }
                 }
                 std::map<std::string, LEAF::variable>::iterator ii;
                 //         std::cout<<_name<<std::endl;
